@@ -1,0 +1,87 @@
+Matlab function: Modified Box-Cox method
+
+function [k1,s1,k2,s2,zsym,beta] = make_sym_TEST(r) 
+
+%Notes
+% load as ‘r’ either rainfall or detrended rainfall (load r)
+% or apply random number generator below
+% r = [1 + (1+1)*rand(1000,1)]; 
+% r = -1 + (1+1)*rand(1000,1);
+
+%Methodology
+%Find statistical properties of the original sample
+k1=kurtosis(r)
+s1=skewness(r)
+xx=r;
+
+%Default parameters
+beta0=[0 0];
+beta1    = num2str(beta0(1));
+beta2    = num2str(beta0(2));
+
+%GUI
+prompt={'par1   (lambda)        ',...
+                'par2   (alpha)         '} ; 
+        
+ 
+%For original data select [0 1], for detrended use default
+
+default = {beta1, beta2};
+title2  = 'Parameters GUI ';
+lineNo  = 1;
+Resize  = 'on';
+answer=inputdlg(prompt,title2,lineNo,default,Resize);
+
+np1     = str2num(answer{1});% if np==0, np = 10; end
+np2     = str2num(answer{2});% if np==0, np = 10; end
+
+beta0=[np1 np2];
+
+% Parameters optimization
+options = optimset('LargeScale','off','MaxFunEvals',[],'Display','off');
+beta=fminsearch(@transf,beta0,options,xx) 
+
+zsym=((xx-min(xx)+beta(2)^2).^beta(1)-1)/beta(1); 
+
+mean(zsym)-median(zsym);
+
+%Find statistical properties of the transformed sample
+k2=kurtosis(zsym)
+s2=skewness(zsym)
+
+%Figures
+figure(1); 
+subplot(2,1,1); 
+normplot(zsym);
+subplot(2,1,2); 
+histfit(zsym); 
+
+======================================================
+%Backtransformation
+%zi for predictions in the Gaussian domain
+%zi=zsym to assess the backranformation efficiency
+%Z1=(beta(1)*zi+1).^(1/beta(1))+min(r)-beta(2).^2
+
+======================================================
+function [y]=transf(beta,x)
+
+ll=beta(1); 
+a=beta(2); 
+z=((x-min(x)+a^2).^ll-1)/ll; 
+sz=std(z); 
+y=((mean(z)-median(z))/sz^3)^2 +(kurtosis(z)-3)^2;
+
+
+Matlab function: Box-Cox method
+
+[bct, bclambda] = boxcox(z)
+% u=(bclambda*bct+1).^(1/bclambda) % back transformation
+kurtosis(z)
+skewness(z)
+
+kurtosis(bct)
+skewness(bct)
+histfit(bct)
+figure
+normplot(bct)
+
